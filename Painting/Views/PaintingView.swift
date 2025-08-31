@@ -5,6 +5,55 @@
 //A view that starts a new painting session and starts hand tracking with drag gestures.
 //*/
 //
+
+import SwiftUI
+import RealityKit
+import ARKit
+
+struct PaintingView: View {
+    var paintingHandTracking = PaintingHandTracking()
+    @State var canvas = PaintingCanvas()
+    @State var lastIndexPose: SIMD3<Float>?
+    
+    var body: some View {
+        RealityView { content in
+            let root = canvas.root
+            content.add(root)
+            
+            root.components.set(ClosureComponent(closure: { deltaTime in
+                var anchors = [HandAnchor]()
+                if let latestLeftHand = paintingHandTracking.latestLeftHand { anchors.append(latestLeftHand) }
+                if let latestRightHand = paintingHandTracking.latestRightHand { anchors.append(latestRightHand) }
+                
+                for anchor in anchors {
+                    guard let handSkeleton = anchor.handSkeleton else { continue }
+                    let thumbPos = (anchor.originFromAnchorTransform * handSkeleton.joint(.thumbTip).anchorFromJointTransform).translation()
+                    let indexPos = (anchor.originFromAnchorTransform * handSkeleton.joint(.indexFingerTip).anchorFromJointTransform).translation()
+                    
+                    let pinchThreshold: Float = 0.05
+                    if length(thumbPos - indexPos) < pinchThreshold {
+                        // If pinching, we store the finger's position.
+                        lastIndexPose = indexPos
+                    }
+                }
+            }))
+        }
+        .gesture(DragGesture(minimumDistance: 0)
+            .targetedToAnyEntity()
+            .onChanged( { _ in
+                if let pos = lastIndexPose {
+                    // While dragging, we add points to the canvas.
+                    canvas.addPoint(pos)
+                }
+            })
+            .onEnded( { _ in
+                    canvas.finishStroke()
+                }))
+        .task {
+            await paintingHandTracking.startTracking()
+        }
+}
+
 //import SwiftUI
 //import RealityKit
 //import ARKit
