@@ -5,6 +5,56 @@ Abstract:
 A class that creates a volume so that a person can create meshes with the location of the drag gesture.
 */
 
+import SwiftUI
+import RealityKit
+
+class PaintingCanvas {
+    let root = Entity()
+    var currentStroke: Stroke?
+    
+    private let big: Float = 1E2
+    private let small: Float = 1E-2
+    
+    init() {
+        root.addChild(addBox(size: [big, big, small], position: [0, 0, -0.5 * big]))
+        root.addChild(addBox(size: [big, big, small], position: [0, 0, +0.5 * big]))
+        root.addChild(addBox(size: [big, small, big], position: [0, -0.5 * big, 0]))
+        root.addChild(addBox(size: [big, small, big], position: [0, +0.5 * big, 0]))
+        root.addChild(addBox(size: [small, big, big], position: [-0.5 * big, 0, 0]))
+        root.addChild(addBox(size: [small, big, big], position: [+0.5 * big, 0, 0]))
+    }
+    
+    private func addBox(size: SIMD3<Float>, position: SIMD3<Float>) -> Entity {
+        let box = Entity()
+        box.components.set(InputTargetComponent())
+        box.components.set(CollisionComponent(shapes: [.generateBox(size: size)], isStatic: true)) // Gives it a physical shape.
+        box.position = position
+        return box
+    }
+    
+    func addPoint(_ position: SIMD3<Float>) {
+        let threshold: Float = 1E-9
+        
+        if currentStroke == nil {
+            currentStroke = Stroke()
+            root.addChild(currentStroke!.entity)
+        }
+        
+        if let previousPoint = currentStroke?.points.last, length(position - previousPoint) < threshold {
+            return
+        }
+        
+        currentStroke?.points.append(position)
+        currentStroke?.updateMesh()
+    }
+    
+    func finishStroke() {
+        currentStroke?.updateMesh()
+        currentStroke = nil
+    }
+}
+
+
 //import SwiftUI
 //import RealityKit
 //
