@@ -5,6 +5,21 @@ Abstract:
 The app's entry point.
 */
 
+import SwiftUI
+
+@main
+struct EntryPoint: App {
+    var body: some Scene {
+        WindowGroup {
+            FirstView()
+        }
+        
+        ImmersiveSpace(id: "PaintingSpace") {
+            PaintingView()
+        }
+    }
+}
+
 //import SwiftUI
 //
 //@main
