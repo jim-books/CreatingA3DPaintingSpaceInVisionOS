@@ -5,6 +5,39 @@ Abstract:
 An observable object class that enables hand tracking and tracks the motion of the anchors.
 */
 
+import RealityKit
+import SwiftUI
+import ARKit
+
+@MainActor
+class PaintingHandTracking: ObservableObject {
+    @Published var latestLeftHand: HandAnchor?
+    @Published var latestRightHand: HandAnchor?
+    
+    let arSession = ARKitSession()
+    let handTracking = HandTrackingProvider()
+    
+    func startTracking() async {
+        guard HandTrackingProvider.isSupported else { return }
+        
+        do {
+            try await arSession.run([handTracking])
+        } catch {
+            print ("ARKit Error: \(error)")
+        }
+        
+        for await anchorUpdate in handTracking.anchorUpdates {
+            switch anchorUpdate.anchor.chirality {
+            case .left:
+                self.latestLeftHand = anchorUpdate.anchor
+            case .right:
+                self.latestRightHand = anchorUpdate.anchor
+            }
+            
+        }
+    }
+}
+
 //import RealityKit
 //import ARKit
 //
